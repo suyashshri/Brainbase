@@ -50,7 +50,7 @@ export default function Landing() {
       <section className="container mx-auto px-4 py-20 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10 gradient-animate" />
         <div className="relative">
-          <h1 className="text-7xl font-bold tracking-tight mb-6 font-outfit bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent animate-float">
+          <h1 className="text-7xl font-bold tracking-tight mb-6 p-4 font-outfit bg-gradient-to-r from-purple-700 to-blue-500 bg-clip-text text-transparent animate-float">
             Your Knowledge Base,
             <br />
             Supercharged with AI
@@ -93,7 +93,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-20">
+      <section className="container mx-auto px-8 py-20">
         <h2 className="text-4xl font-bold text-center mb-16 font-outfit">
           Everything You Need in One Place
         </h2>
