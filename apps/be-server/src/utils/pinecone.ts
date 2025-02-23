@@ -1,21 +1,65 @@
-import { Pinecone } from '@pinecone-database/pinecone'
+import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone'
+import { downloadFromS3 } from './downloadfromS3'
+import fs from 'fs'
+import md5 from 'md5'
+import { splitPdfIntoChunks } from './splitpdf'
+import { getEmbeddingsFromOpenAI } from './embeddings'
 
 const pc = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY!,
 })
 
-export async function loadDataIntoPinecone() {
-  await pc.createIndex({
-    name: 'example-index',
-    dimension: 1536,
-    metric: 'cosine',
-    spec: {
-      serverless: {
-        cloud: 'aws',
-        region: 'us-east-1',
+async function createIndex() {
+  const index_name = process.env.PINECONE_INDEX_NAME!
+  const existingIndexes = await pc.listIndexes()
+  if (!existingIndexes.indexes?.map((index) => index.name === index_name)) {
+    await pc.createIndex({
+      name: 'brainbase-index',
+      dimension: 1536,
+      metric: 'cosine',
+      spec: {
+        serverless: {
+          cloud: 'aws',
+          region: 'us-east-1',
+        },
       },
-    },
-    deletionProtection: 'disabled',
-    tags: { environment: 'development' },
-  })
+      deletionProtection: 'disabled',
+      tags: { environment: 'development' },
+    })
+    console.log(`Index "${index_name}" created!`)
+  } else {
+    console.log(`Index "${index_name}" already exists.`)
+  }
+}
+createIndex()
+
+export async function loadDataIntoPinecone(filekey: string) {
+  const file_name = await downloadFromS3(filekey)
+  if (!file_name) {
+    throw new Error('Could not download file from S3')
+  }
+  console.log('File is loaded here:', file_name)
+
+  const dataBuffer = fs.readFileSync(file_name)
+  const chunks = await splitPdfIntoChunks(dataBuffer)
+
+  const vectors = await Promise.all(
+    chunks.map(async (c) => {
+      const embeddings = await getEmbeddingsFromOpenAI(c.chunk)
+      const hash = md5(c.chunk)
+      return {
+        id: hash,
+        values: embeddings,
+        metadata: {
+          text: c.chunk,
+          pageNumber: c.pageIndex,
+          chunkNumber: c.chunkIndex,
+        },
+      } as PineconeRecord
+    })
+  )
+
+  const index = pc.index(process.env.PINECONE_INDEX_NAME!)
+
+  await index.upsert(vectors)
 }
