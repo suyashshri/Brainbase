@@ -17,10 +17,11 @@ enum DocFileType {
 
 model Documents{
   id          String        @id   @default(uuid())
-  usedId      String
+  userId      String
   fileName    String
   fileType    DocFileType
   filePath    String
+  fileUrl     String
   uploadedAt  DateTime      @default(now())
   processed   Boolean       @default(false)
   chunks      ContentChunk[]
