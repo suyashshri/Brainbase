@@ -1,6 +1,5 @@
 'use client'
 
-import { MoonIcon, SunIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from 'next-themes'
 import {
@@ -13,39 +12,21 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react'
+import {
+  SignedIn,
+  SignedOut,
+  SignIn,
+  SignInButton,
+  SignOutButton,
+  SignUpButton,
+  UserButton,
+} from '@clerk/nextjs'
+import Header from './Header'
 
 export default function Landing() {
-  const { theme, setTheme } = useTheme()
-
   return (
     <div className="min-h-screen bg-background font-inter">
-      <nav className="border-b backdrop-blur-sm bg-background/80 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BrainCog className="h-8 w-8 text-primary animate-float" />
-            <span className="text-2xl font-bold text-primary font-outfit">
-              BrainBase
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            >
-              {theme === 'light' ? (
-                <MoonIcon className="h-5 w-5" />
-              ) : (
-                <SunIcon className="h-5 w-5" />
-              )}
-            </Button>
-            <Button variant="outline">Sign In</Button>
-            <Button className="bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600">
-              Get Started
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       <section className="container mx-auto px-4 py-20 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10 gradient-animate" />
@@ -65,7 +46,9 @@ export default function Landing() {
               size="lg"
               className="gap-2 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 group transition-all duration-300"
             >
-              <span>Try it Free</span>
+              <SignInButton>
+                <span>Try it Free</span>
+              </SignInButton>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button
