@@ -1,32 +1,40 @@
 import express, { Router } from 'express'
-import AWS from 'aws-sdk'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import prisma from '@repo/db/client'
 import { DocumentUploadSchema } from '@repo/backend-common/types'
 
 const router: Router = express.Router()
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
-})
-
 //GET presigned URL and send it to frontend
 router.get('/pre-signed-url', async (req, res) => {
-  const { filename, filetype } = req.body()
-  const key = `models/${Date.now()}_${filename}`
+  try {
+    const { filename, filetype } = req.body
+    if (!filename || !filetype) {
+      res.status(400).json({ error: 'Filename and filetype are required' })
+      return
+    }
+    const key = `models/${Date.now()}_${filename}`
 
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: key,
-    ContentType: filetype,
-    Expires: 60,
+    try {
+      const client = new S3Client({ region: process.env.AWS_REGION! })
+      const command = new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME!,
+        Key: key,
+      })
+      const uploadUrl = await getSignedUrl(client, command, { expiresIn: 3600 })
+
+      res.json({
+        uploadUrl,
+        key,
+      })
+    } catch (error) {
+      console.error('Error generating presigned URL', error)
+    }
+  } catch (err) {
+    console.log('Error in generating presigned URL:', err)
+    throw new Error()
   }
-  const uploadUrl = await s3.getSignedUrlPromise('putObject', params)
-  res.json({
-    uploadUrl,
-    key,
-  })
 })
 
 //GET presigned URL and send it to frontend
