@@ -1,3 +1,4 @@
+'use client'
 import {
   SignedIn,
   SignedOut,
@@ -5,9 +6,10 @@ import {
   SignUpButton,
   UserButton,
 } from '@clerk/nextjs'
-import { BrainCog, MoonIcon, SunIcon } from 'lucide-react'
+import { BrainCog } from 'lucide-react'
 import { Button } from './ui/button'
 import { useTheme } from 'next-themes'
+import { ThemeToggle } from './Theme-toggle'
 
 const Header = () => {
   const { theme, setTheme } = useTheme()
@@ -21,17 +23,8 @@ const Header = () => {
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          >
-            {theme === 'light' ? (
-              <MoonIcon className="h-5 w-5" />
-            ) : (
-              <SunIcon className="h-5 w-5" />
-            )}
-          </Button>
+          <ThemeToggle />
+
           <SignedOut>
             <SignInButton>
               <Button variant="outline">Sign In</Button>

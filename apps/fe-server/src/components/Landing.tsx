@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { useTheme } from 'next-themes'
 import {
   BrainCog,
   Search,
@@ -12,15 +11,7 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react'
-import {
-  SignedIn,
-  SignedOut,
-  SignIn,
-  SignInButton,
-  SignOutButton,
-  SignUpButton,
-  UserButton,
-} from '@clerk/nextjs'
+import { SignInButton } from '@clerk/nextjs'
 import Header from './Header'
 
 export default function Landing() {
