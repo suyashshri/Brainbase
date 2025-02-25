@@ -7,7 +7,7 @@ import { DocumentUploadSchema } from '@repo/backend-common/types'
 const router: Router = express.Router()
 
 //GET presigned URL and send it to frontend
-router.get('/pre-signed-url', async (req, res) => {
+router.post('/pre-signed-url', async (req, res) => {
   try {
     const { filename, filetype } = req.body
     if (!filename || !filetype) {

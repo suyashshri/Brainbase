@@ -7,7 +7,6 @@ import {
   Image,
   Link as LinkIcon,
   Loader2,
-  Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,14 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import HeaderDialog from '@/components/Header-dialog'
@@ -43,17 +35,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold font-outfit">Dashboard</h1>
-          <HeaderDialog />
+          <div className="">
+            <HeaderDialog />
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-5 gap-8">
-          {/* Search Section */}
           <div className="lg:col-span-3 space-y-6">
             <Card>
               <CardHeader>

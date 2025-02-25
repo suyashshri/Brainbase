@@ -9,13 +9,56 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { PlusCircleIcon, Upload, Inbox } from 'lucide-react'
+import { Upload, Inbox } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
+import axios from 'axios'
+import { HTTP_BACKEND } from '@/config'
+import { SetStateAction, useState } from 'react'
+import { ToastContainer, toast } from 'react-toastify'
+
+const onDropHandler = async (
+  acceptedFiles: File[],
+  setIsUploading: React.Dispatch<SetStateAction<boolean>>
+) => {
+  try {
+    setIsUploading(true)
+
+    // await new Promise((resolve) => setTimeout(resolve, 5000))
+
+    const response = await axios.post(
+      `${HTTP_BACKEND}/user/documents/pre-signed-url`,
+      {
+        filename: acceptedFiles[0].name,
+        filetype: acceptedFiles[0].type,
+      }
+    )
+    if (response) {
+      const uploadedToS3 = await axios.put(
+        `${response.data.uploadUrl}`,
+        acceptedFiles[0].name
+      )
+
+      if (uploadedToS3.status == 200) {
+        toast.success('File Uploaded Successfully', {
+          autoClose: 3000,
+        })
+        setIsUploading(false)
+      }
+    }
+  } catch (error) {
+    toast.error('File Not Uploaded! Please try again.', {
+      autoClose: 3000,
+    })
+    console.log('error', error)
+  }
+}
 
 const HeaderDialog = () => {
+  const [isUploading, setIsUploading] = useState(false)
   const { getRootProps, getInputProps } = useDropzone({
     accept: { 'application/pdf': ['.pdf'] },
-    maxFile: 1,
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => onDropHandler(acceptedFiles, setIsUploading),
   })
   return (
     <Dialog>
@@ -37,7 +80,7 @@ const HeaderDialog = () => {
           <div
             {...getRootProps({
               className:
-                'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer justify-center flex flex-col items-center',
+                'border-2  border-dashed rounded-xl p-8 text-center cursor-pointer justify-center flex flex-col items-center',
             })}
           >
             <input {...getInputProps()} />
@@ -47,9 +90,10 @@ const HeaderDialog = () => {
             </p>
           </div>
           <Input type="text" placeholder="Or paste a link here..." />
-          <Button>Upload</Button>
+          <Button>{isUploading ? 'Uploading...' : 'Upload'}</Button>
         </div>
       </DialogContent>
+      <ToastContainer />
     </Dialog>
   )
 }
