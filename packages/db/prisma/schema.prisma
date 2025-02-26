@@ -20,10 +20,10 @@ model Documents{
   userId      String
   fileName    String
   fileType    DocFileType
-  filePath    String
+  // filePath    String
   fileUrl     String
   uploadedAt  DateTime      @default(now())
-  processed   Boolean       @default(false)
+  processed   Boolean       @default(true)
   chunks      ContentChunk[]
 }
 

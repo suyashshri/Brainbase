@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const DocumentUploadSchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  fileName: z.string(),
+  fileType: z.string(z.enum(['PDF', 'PNG', 'JPEG'])),
+  fileUrl: z.string(),
 })

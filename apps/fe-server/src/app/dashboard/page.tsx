@@ -117,7 +117,7 @@ export default function Dashboard() {
                     <ScrollArea className="h-[500px]">
                       <div className="space-y-4">
                         {/* Example Documents */}
-                        <DocumentItem
+                        {/* <DocumentItem
                           icon={<FileText className="h-4 w-4" />}
                           title="Q4 Marketing Report.pdf"
                           type="PDF"
@@ -131,7 +131,7 @@ export default function Dashboard() {
                           icon={<LinkIcon className="h-4 w-4" />}
                           title="Research Article"
                           type="Link"
-                        />
+                        /> */}
                       </div>
                     </ScrollArea>
                   </TabsContent>

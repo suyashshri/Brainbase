@@ -12,7 +12,7 @@ import { useTheme } from 'next-themes'
 import { ThemeToggle } from './Theme-toggle'
 
 const Header = () => {
-  const { theme, setTheme } = useTheme()
+  // const { theme, setTheme } = useTheme()
   return (
     <nav className="border-b backdrop-blur-sm bg-background/80 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">

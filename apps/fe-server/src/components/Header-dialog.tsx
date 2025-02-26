@@ -13,55 +13,89 @@ import { Upload, Inbox } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import axios from 'axios'
 import { HTTP_BACKEND } from '@/config'
-import { SetStateAction, useState } from 'react'
+import { SetStateAction, useEffect, useState } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
-
-const onDropHandler = async (
-  acceptedFiles: File[],
-  setIsUploading: React.Dispatch<SetStateAction<boolean>>
-) => {
-  try {
-    setIsUploading(true)
-
-    // await new Promise((resolve) => setTimeout(resolve, 5000))
-
-    const response = await axios.post(
-      `${HTTP_BACKEND}/user/documents/pre-signed-url`,
-      {
-        filename: acceptedFiles[0].name,
-        filetype: acceptedFiles[0].type,
-      }
-    )
-    if (response) {
-      const uploadedToS3 = await axios.put(
-        `${response.data.uploadUrl}`,
-        acceptedFiles[0].name
-      )
-
-      if (uploadedToS3.status == 200) {
-        toast.success('File Uploaded Successfully', {
-          autoClose: 3000,
-        })
-        setIsUploading(false)
-      }
-    }
-  } catch (error) {
-    toast.error('File Not Uploaded! Please try again.', {
-      autoClose: 3000,
-    })
-    console.log('error', error)
-  }
-}
+import { useAuth } from '@clerk/nextjs'
 
 const HeaderDialog = () => {
   const [isUploading, setIsUploading] = useState(false)
+  // const [isUploaded, setIsUploaded] = useState(false)
+  const { getToken } = useAuth()
+
+  const onDropHandler = async (
+    acceptedFiles: File[],
+    setIsUploading: React.Dispatch<SetStateAction<boolean>>
+  ) => {
+    if (!acceptedFiles.length) return
+    try {
+      setIsUploading(true)
+      const file = acceptedFiles[0]
+      const token = await getToken()
+      console.log(token)
+
+      // await new Promise((resolve) => setTimeout(resolve, 5000))
+      const response = await axios.post(
+        `${HTTP_BACKEND}/user/documents/pre-signed-url`,
+        {
+          filename: file.name,
+          filetype: file.type,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      if (response) {
+        const { uploadUrl, fileKey } = response.data
+        if (!uploadUrl) throw new Error('Failed to get presigned URL')
+        const uploadedToS3 = await axios.put(`${uploadUrl}`, file.name)
+
+        if (uploadedToS3.status == 200) {
+          try {
+            await axios.post(
+              `${HTTP_BACKEND}/user/documents/upload`,
+              {
+                filename: acceptedFiles[0].name,
+                filetype: acceptedFiles[0].type.toLocaleUpperCase(),
+                fileUrl: uploadUrl,
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            )
+            toast.success('File Uploaded Successfully', {
+              autoClose: 3000,
+            })
+          } catch (error) {
+            toast.error('File Not Uploaded! Please try again.', {
+              autoClose: 3000,
+            })
+            console.log('error', error)
+          } finally {
+            setIsUploading(false)
+          }
+        }
+      }
+    } catch (error) {
+      toast.error('File Not Uploaded! Please try again.', {
+        autoClose: 3000,
+      })
+      console.log('error', error)
+    }
+  }
+
   const { getRootProps, getInputProps } = useDropzone({
     accept: { 'application/pdf': ['.pdf'] },
     maxFiles: 1,
     onDrop: (acceptedFiles) => onDropHandler(acceptedFiles, setIsUploading),
   })
   return (
-    <Dialog>
+    <Dialog open={isUploading} onOpenChange={setIsUploading}>
       <DialogTrigger asChild>
         <Button className="gap-2 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600">
           <Upload className="w-4 h-4" />
