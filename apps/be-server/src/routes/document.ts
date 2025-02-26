@@ -3,6 +3,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import prisma from '@repo/db/client'
 import { DocumentUploadSchema } from '@repo/backend-common/types'
+import { authMiddleware } from '../middleware'
 
 const router: Router = express.Router()
 
@@ -38,7 +39,7 @@ router.post('/pre-signed-url', async (req, res) => {
 })
 
 //GET presigned URL and send it to frontend
-router.post('/upload', (req, res) => {
+router.post('/upload', authMiddleware, async (req, res) => {
   const data = req.body
   const parsedData = DocumentUploadSchema.safeParse(data)
 
@@ -46,6 +47,29 @@ router.post('/upload', (req, res) => {
     res
       .json({ message: 'Please enter valid title and description' })
       .status(422)
+    return
+  }
+  const { fileName, fileType, fileUrl } = parsedData.data!
+
+  try {
+    const doc = await prisma.documents.create({
+      data: {
+        userId: req.userId,
+        fileName,
+        fileType,
+        fileUrl,
+      },
+    })
+    res
+      .json({
+        message: 'Document Uploaded Successfully',
+        id: doc.id,
+      })
+      .status(201)
+  } catch (error) {
+    console.error('Unable to upload the document')
+    res.status(500).json({ error: 'Failed to save file metadata in DB' })
+    return
   }
 })
 

@@ -19,7 +19,7 @@ import { useAuth } from '@clerk/nextjs'
 
 const HeaderDialog = () => {
   const [isUploading, setIsUploading] = useState(false)
-  // const [isUploaded, setIsUploaded] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const { getToken } = useAuth()
 
   const onDropHandler = async (
@@ -31,9 +31,7 @@ const HeaderDialog = () => {
       setIsUploading(true)
       const file = acceptedFiles[0]
       const token = await getToken()
-      console.log(token)
 
-      // await new Promise((resolve) => setTimeout(resolve, 5000))
       const response = await axios.post(
         `${HTTP_BACKEND}/user/documents/pre-signed-url`,
         {
@@ -47,45 +45,57 @@ const HeaderDialog = () => {
           },
         }
       )
-      if (response) {
-        const { uploadUrl, fileKey } = response.data
-        if (!uploadUrl) throw new Error('Failed to get presigned URL')
-        const uploadedToS3 = await axios.put(`${uploadUrl}`, file.name)
+      if (!response.data.uploadUrl) {
+        throw new Error('Failed to get presigned URL')
+      }
 
-        if (uploadedToS3.status == 200) {
-          try {
-            await axios.post(
-              `${HTTP_BACKEND}/user/documents/upload`,
-              {
-                filename: acceptedFiles[0].name,
-                filetype: acceptedFiles[0].type.toLocaleUpperCase(),
-                fileUrl: uploadUrl,
-              },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            )
+      const { uploadUrl, fileKey } = response.data
+
+      try {
+        const response = await axios.post(
+          `${HTTP_BACKEND}/user/documents/upload`,
+          {
+            fileName: file.name,
+            fileType: file.type.toUpperCase(),
+            fileUrl: uploadUrl,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+
+        if (response.status == 200) {
+          const uploadedToS3 = await axios.put(`${uploadUrl}`, file, {
+            headers: {
+              'Content-Type': file.type,
+            },
+          })
+          if (uploadedToS3.status == 200) {
             toast.success('File Uploaded Successfully', {
               autoClose: 3000,
             })
-          } catch (error) {
-            toast.error('File Not Uploaded! Please try again.', {
-              autoClose: 3000,
-            })
-            console.log('error', error)
-          } finally {
-            setIsUploading(false)
+            setIsDialogOpen(false)
           }
+        } else {
+          toast.error('File Not Uploaded! Please try again.', {
+            autoClose: 3000,
+          })
         }
+      } catch (error) {
+        console.log('error', error)
+      } finally {
+        setIsUploading(false)
       }
     } catch (error) {
       toast.error('File Not Uploaded! Please try again.', {
         autoClose: 3000,
       })
-      console.log('error', error)
+      console.log('Upload Error:', error)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -95,9 +105,12 @@ const HeaderDialog = () => {
     onDrop: (acceptedFiles) => onDropHandler(acceptedFiles, setIsUploading),
   })
   return (
-    <Dialog open={isUploading} onOpenChange={setIsUploading}>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600">
+        <Button
+          className="gap-2 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
+          onClick={() => setIsDialogOpen(true)}
+        >
           <Upload className="w-4 h-4" />
           Upload
         </Button>
@@ -124,7 +137,9 @@ const HeaderDialog = () => {
             </p>
           </div>
           <Input type="text" placeholder="Or paste a link here..." />
-          <Button>{isUploading ? 'Uploading...' : 'Upload'}</Button>
+          <Button disabled={isUploading}>
+            {isUploading ? 'Uploading...' : 'Upload'}
+          </Button>
         </div>
       </DialogContent>
       <ToastContainer />

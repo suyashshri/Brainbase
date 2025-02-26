@@ -3,6 +3,7 @@ declare namespace NodeJS {
     // # Clerk API Keys
     CLERK_PUBLISHABLE_KEY: string
     CLERK_SECRET_KEY: string
+    CLERK_JWT_PUBLIC_KEY: string
 
     // #AWS S3 Api key
     S3_ACCESS_KEY_ID: string

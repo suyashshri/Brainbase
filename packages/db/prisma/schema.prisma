@@ -19,8 +19,7 @@ model Documents{
   id          String        @id   @default(uuid())
   userId      String
   fileName    String
-  fileType    DocFileType
-  // filePath    String
+  fileType    String
   fileUrl     String
   uploadedAt  DateTime      @default(now())
   processed   Boolean       @default(true)
