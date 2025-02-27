@@ -49,7 +49,7 @@ const HeaderDialog = () => {
         throw new Error('Failed to get presigned URL')
       }
 
-      const { uploadUrl, fileKey } = response.data
+      const { uploadUrl } = response.data
 
       try {
         const response = await axios.post(

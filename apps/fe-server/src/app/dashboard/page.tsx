@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Search,
   FileText,
@@ -21,10 +21,42 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import HeaderDialog from '@/components/Header-dialog'
+import axios from 'axios'
+import { HTTP_BACKEND } from '@/config'
+import { useAuth } from '@clerk/nextjs'
+
+type docType = {
+  fileName: string
+  fileType: string
+  fileUrl: string
+  id: string
+  userId: string
+  uploadedAt: Date
+  processed: boolean
+}
 
 export default function Dashboard() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [docs, setDocs] = useState<docType[]>([])
+  const { getToken } = useAuth()
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const token = await getToken()
+        const allDocs = await axios.get(`${HTTP_BACKEND}/user/documents`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        setDocs(allDocs.data.documents)
+        console.log(docs)
+      } catch (error) {
+        console.log('Error fetching documents:', error)
+      }
+    })()
+  }, [getToken])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,6 +148,15 @@ export default function Dashboard() {
                   <TabsContent value="all" className="mt-4">
                     <ScrollArea className="h-[500px]">
                       <div className="space-y-4">
+                        {docs.map((doc, key) => {
+                          return (
+                            <DocumentItem
+                              icon={<FileText className="h-4 w-4" />}
+                              title={doc.fileName}
+                              type="PDF"
+                            />
+                          )
+                        })}
                         {/* Example Documents */}
                         {/* <DocumentItem
                           icon={<FileText className="h-4 w-4" />}

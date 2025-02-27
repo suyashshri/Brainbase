@@ -74,13 +74,17 @@ router.post('/upload', authMiddleware, async (req, res) => {
 })
 
 //GET all documents
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const docs = await prisma.documents.findMany({
       where: {
         userId: req.userId,
       },
+      orderBy: {
+        uploadedAt: 'desc',
+      },
     })
+
     res
       .json({
         documents: docs,
