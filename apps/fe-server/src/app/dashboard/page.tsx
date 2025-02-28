@@ -24,6 +24,7 @@ import HeaderDialog from '@/components/Header-dialog'
 import axios from 'axios'
 import { HTTP_BACKEND } from '@/config'
 import { useAuth } from '@clerk/nextjs'
+import Link from 'next/link'
 
 type docType = {
   fileName: string
@@ -58,7 +59,7 @@ export default function Dashboard() {
     })()
   }, [getToken])
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setIsSearching(true)
     // Simulate search delay
@@ -149,8 +150,12 @@ export default function Dashboard() {
                     <ScrollArea className="h-[500px]">
                       <div className="space-y-4">
                         {docs.map((doc, key) => {
+                          // console.log(doc.id)
+
                           return (
                             <DocumentItem
+                              key={key}
+                              id={doc.id}
                               icon={<FileText className="h-4 w-4" />}
                               title={doc.fileName}
                               type="PDF"
@@ -197,26 +202,33 @@ export default function Dashboard() {
 }
 
 function DocumentItem({
+  id,
   icon,
   title,
   type,
 }: {
+  id: string
   icon: React.ReactNode
   title: string
   type: string
 }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent transition-colors">
-      <div className="rounded-full w-8 h-8 bg-gradient-to-r from-purple-500/10 to-blue-500/10 flex items-center justify-center">
-        {icon}
+    <Link
+      key={id}
+      href={{ pathname: `/dashboard/${title}`, query: { id: id } }}
+    >
+      <div className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent transition-colors">
+        <div className="rounded-full w-8 h-8 bg-gradient-to-r from-purple-500/10 to-blue-500/10 flex items-center justify-center">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{title}</p>
+          <p className="text-xs text-muted-foreground">{type}</p>
+        </div>
+        <Button variant="ghost" size="icon">
+          <Search className="h-4 w-4" />
+        </Button>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{title}</p>
-        <p className="text-xs text-muted-foreground">{type}</p>
-      </div>
-      <Button variant="ghost" size="icon">
-        <Search className="h-4 w-4" />
-      </Button>
-    </div>
+    </Link>
   )
 }

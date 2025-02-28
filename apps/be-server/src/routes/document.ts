@@ -1,9 +1,14 @@
 import express, { Router } from 'express'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import prisma from '@repo/db/client'
 import { DocumentUploadSchema } from '@repo/backend-common/types'
 import { authMiddleware } from '../middleware'
+import fs from 'fs'
 
 const router: Router = express.Router()
 
@@ -99,12 +104,45 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/:documentId', async (req, res) => {
   try {
     const documentId = req.params.documentId
+
     const doc = await prisma.documents.findUnique({
       where: {
         id: documentId,
         userId: req.userId,
       },
     })
+    if (!doc) {
+      res
+        .json({
+          messgae: 'No Document found with this ID',
+        })
+        .status(404)
+      return
+    }
+    // console.log('doc', doc)
+
+    // const client = new S3Client({ region: process.env.AWS_REGION! })
+    // const command = new GetObjectCommand({
+    //   Bucket: process.env.S3_BUCKET_NAME!,
+    //   Key: 'models/1740753175159_2556825647.pdf',
+    // })
+    // const response = await client.send(command)
+    // if (!response.Body) throw new Error('No file found in S3 response')
+
+    // // Convert ReadableStream to Buffer
+    // const streamToBuffer = async (stream: any) => {
+    //   return new Promise<Buffer>((resolve, reject) => {
+    //     const chunks: any[] = []
+    //     stream.on('data', (chunk: any) => chunks.push(chunk))
+    //     stream.on('end', () => resolve(Buffer.concat(chunks)))
+    //     stream.on('error', reject)
+    //   })
+    // }
+    // const fileBuffer = await streamToBuffer(response.Body)
+
+    // // Save PDF to local file (optional)
+    // fs.writeFileSync('downloaded.pdf', fileBuffer)
+    // console.log('✅ PDF file downloaded successfully.')
     res
       .json({
         document: doc,
