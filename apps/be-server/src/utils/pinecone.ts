@@ -54,14 +54,16 @@ export async function loadDataIntoPinecone(filekey: string) {
         values: embeddings,
         metadata: {
           text: c.chunk,
-          pageNumber: c.pageIndex,
-          chunkNumber: c.chunkIndex,
+          pageNumber: Number(c.pageIndex),
+          chunkNumber: Number(c.chunkIndex),
         },
       } as PineconeRecord
     })
   )
+  console.log('vectorssssssss', vectors)
 
   const index = pc.index(process.env.PINECONE_INDEX_NAME!)
+  console.log('indexxxxxxxxx', index)
 
   await index.upsert(vectors)
 }
