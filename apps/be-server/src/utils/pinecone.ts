@@ -4,6 +4,7 @@ import fs from 'fs'
 import md5 from 'md5'
 import { splitPdfIntoChunks } from './splitpdf'
 import { getEmbeddingsFromOpenAI } from './embeddings'
+import path from 'path'
 
 const pc = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY!,
@@ -40,8 +41,9 @@ export async function loadDataIntoPinecone(filekey: string) {
   }
   console.log('File is loaded here:', file_name)
 
-  const dataBuffer = fs.readFileSync(file_name)
+  const dataBuffer = fs.readFileSync(path.join(process.cwd(), 'tmp', file_name))
   const chunks = await splitPdfIntoChunks(dataBuffer)
+  console.log('chunksssssssssssssss', chunks)
 
   const vectors = await Promise.all(
     chunks.map(async (c) => {

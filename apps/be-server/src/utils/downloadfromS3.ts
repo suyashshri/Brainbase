@@ -1,7 +1,8 @@
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import AWS from 'aws-sdk'
 import dotenv from 'dotenv'
 import fs from 'fs'
-import path, { resolve } from 'path'
+import path from 'path'
 
 dotenv.config()
 
@@ -11,31 +12,69 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION,
 })
 
-export async function downloadFromS3(filekey: string): Promise<string> {
+async function streamToBuffer(stream: any): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    stream.on('data', (chunk: Buffer) => chunks.push(chunk))
+    stream.on('end', () => resolve(Buffer.concat(chunks)))
+    stream.on('error', reject)
+  })
+}
+
+export async function downloadFromS3(filekey: string) {
   try {
-    const params = {
+    const client = new S3Client({ region: process.env.AWS_REGION! })
+    const command = new GetObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME!,
-      Key: filekey,
+      Key: 'models/1740826904182_2327737890.pdf',
+    })
+    const response = await client.send(command)
+
+    if (!response.Body) throw new Error('No file found in S3 response')
+
+    // Convert stream to Buffer
+    const fileBuffer = await streamToBuffer(response.Body as any)
+
+    // Ensure tmp directory exists
+    const tmpDir = path.join(process.cwd(), 'tmp')
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true })
     }
 
-    const filePath = path.join(__dirname, 'downloads', filekey)
-    const fileStream = fs.createWriteStream(filePath)
+    // Generate file path
+    const fileName = `yash_${Date.now()}.pdf`
+    const filePath = path.join(tmpDir, fileName)
 
-    return new Promise((resolve, reject) => {
-      s3.getObject(params)
-        .createReadStream()
-        .pipe(fileStream)
-        .on('finish', async () => {
-          console.log('File Downloaded: ', filePath)
-          resolve(filePath)
-        })
-        .on('error', (err) => {
-          console.error('Error downloading file:', err)
-          reject(err)
-        })
-    })
+    // Write file locally
+    fs.writeFileSync(filePath, fileBuffer)
+    console.log('✅ PDF file downloaded successfully:', filePath)
+
+    return fileName // Return file name
   } catch (error) {
     console.log('error in downloading from s3', error)
     throw error
   }
 }
+
+// const client = new S3Client({ region: process.env.AWS_REGION! })
+// const command = new GetObjectCommand({
+//   Bucket: process.env.S3_BUCKET_NAME!,
+//   Key: 'models/1740753175159_2556825647.pdf',
+// })
+// const response = await client.send(command)
+// if (!response.Body) throw new Error('No file found in S3 response')
+
+// // Convert ReadableStream to Buffer
+// const streamToBuffer = async (stream: any) => {
+//   return new Promise<Buffer>((resolve, reject) => {
+//     const chunks: any[] = []
+//     stream.on('data', (chunk: any) => chunks.push(chunk))
+//     stream.on('end', () => resolve(Buffer.concat(chunks)))
+//     stream.on('error', reject)
+//   })
+// }
+// const fileBuffer = await streamToBuffer(response.Body)
+
+// // Save PDF to local file (optional)
+// fs.writeFileSync('downloaded.pdf', fileBuffer)
+// console.log('✅ PDF file downloaded successfully.')
