@@ -106,6 +106,22 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 })
 
+router.post('/:documentId/chat', async(req,res)=>{
+  try {
+    const documentId = req.params.documentId
+    const {content, role } = req.body
+    const chat = await prisma.pdfMessages.create({
+      data:{
+        docId:documentId,
+        content,
+        role
+      }
+    })
+  } catch (error) {
+    
+  }
+})
+
 //GET specific document with specific ID
 router.get('/:documentId', async (req, res) => {
   try {
