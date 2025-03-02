@@ -1,13 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {
-  Search,
-  FileText,
-  Image,
-  Link as LinkIcon,
-  Loader2,
-} from 'lucide-react'
+import { Search, FileText, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -25,6 +19,9 @@ import axios from 'axios'
 import { HTTP_BACKEND } from '@/config'
 import { useAuth } from '@clerk/nextjs'
 import Link from 'next/link'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 type docType = {
   fileName: string
@@ -40,6 +37,7 @@ export default function Dashboard() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [docs, setDocs] = useState<docType[]>([])
+  const [uploadTrigger, setUploadTrigger] = useState(0)
   const { getToken } = useAuth()
 
   useEffect(() => {
@@ -52,12 +50,11 @@ export default function Dashboard() {
           },
         })
         setDocs(allDocs.data.documents)
-        console.log(docs)
       } catch (error) {
         console.log('Error fetching documents:', error)
       }
     })()
-  }, [getToken])
+  }, [getToken, uploadTrigger])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,7 +69,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold font-outfit">Dashboard</h1>
           <div className="">
-            <HeaderDialog />
+            <HeaderDialog setUploadTrigger={setUploadTrigger} />
           </div>
         </div>
       </header>
@@ -150,8 +147,6 @@ export default function Dashboard() {
                     <ScrollArea className="h-[500px]">
                       <div className="space-y-4">
                         {docs.map((doc, key) => {
-                          // console.log(doc.id)
-
                           return (
                             <DocumentItem
                               key={key}

@@ -21,6 +21,7 @@ model Documents{
   fileName    String
   fileType    String
   fileUrl     String
+  fileKey     String
   uploadedAt  DateTime      @default(now())
   processed   Boolean       @default(true)
   chunks      ContentChunk[]

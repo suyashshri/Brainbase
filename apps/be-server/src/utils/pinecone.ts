@@ -39,11 +39,9 @@ export async function loadDataIntoPinecone(filekey: string) {
   if (!file_name) {
     throw new Error('Could not download file from S3')
   }
-  console.log('File is loaded here:', file_name)
 
   const dataBuffer = fs.readFileSync(path.join(process.cwd(), 'tmp', file_name))
   const chunks = await splitPdfIntoChunks(dataBuffer)
-  console.log('chunksssssssssssssss', chunks)
 
   const vectors = await Promise.all(
     chunks.map(async (c) => {
@@ -60,10 +58,8 @@ export async function loadDataIntoPinecone(filekey: string) {
       } as PineconeRecord
     })
   )
-  console.log('vectorssssssss', vectors)
 
   const index = pc.index(process.env.PINECONE_INDEX_NAME!)
-  console.log('indexxxxxxxxx', index)
 
   await index.upsert(vectors)
 }

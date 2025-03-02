@@ -13,6 +13,8 @@ const page = () => {
   const { getToken } = useAuth()
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
+  console.log(id)
+
   useEffect(() => {
     ;(async () => {
       if (!id) return
@@ -27,16 +29,21 @@ const page = () => {
             },
           }
         )
-        setPdfUrl(response.data.fileUrl)
+        console.log(process.env.NEXT_PUBLIC_S3_BUCKET_URL)
+
+        setPdfUrl(
+          `https://brainbasebucket.s3.ap-south-1.amazonaws.com/${response.data.document.fileKey}`
+        )
       } catch (error) {
         console.log('Failed to fetch PDF:', error)
+        return
       }
     })()
   }, [id])
   return (
     <div className="flex max-h-screen">
       <div className="flex max-h-screen p-4 oveflow-scroll flex-[7]">
-        <PDFViewer pdf_url="https://brainbasebucket.s3.ap-south-1.amazonaws.com/models/1740757789660_2556825647.pdf" />
+        {pdfUrl && <PDFViewer pdf_url={pdfUrl} />}
       </div>
       <div className="flex-[3] max-h-screen border-l-4 border-l-slate-200">
         <ChatPdf />

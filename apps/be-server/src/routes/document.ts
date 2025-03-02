@@ -4,13 +4,12 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import prisma from '@repo/db/client'
 import { DocumentUploadSchema } from '@repo/backend-common/types'
 import { authMiddleware } from '../middleware'
-import { bind } from '../utils/binding'
 import { loadDataIntoPinecone } from '../utils/pinecone'
 
 const router: Router = express.Router()
 
 //GET presigned URL and send it to frontend
-router.post('/pre-signed-url', async (req, res) => {
+router.post('/pre-signed-url', authMiddleware, async (req, res) => {
   try {
     const { filename, filetype } = req.body
     if (!filename || !filetype) {
@@ -19,21 +18,17 @@ router.post('/pre-signed-url', async (req, res) => {
     }
     const key = `models/${Date.now()}_${filename}`
 
-    try {
-      const client = new S3Client({ region: process.env.AWS_REGION! })
-      const command = new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
-        Key: key,
-      })
-      const uploadUrl = await getSignedUrl(client, command, { expiresIn: 3600 })
+    const client = new S3Client({ region: process.env.AWS_REGION! })
+    const command = new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME!,
+      Key: key,
+    })
+    const uploadUrl = await getSignedUrl(client, command, { expiresIn: 3600 })
 
-      res.json({
-        uploadUrl,
-        key,
-      })
-    } catch (error) {
-      console.error('Error generating presigned URL', error)
-    }
+    res.json({
+      uploadUrl,
+      key,
+    })
   } catch (err) {
     console.log('Error in generating presigned URL:', err)
     throw new Error()
@@ -44,6 +39,7 @@ router.post('/pre-signed-url', async (req, res) => {
 router.post('/upload', authMiddleware, async (req, res) => {
   const data = req.body
   const parsedData = DocumentUploadSchema.safeParse(data)
+  console.log(' uploading to db')
 
   if (!parsedData.success) {
     res
@@ -51,7 +47,8 @@ router.post('/upload', authMiddleware, async (req, res) => {
       .status(422)
     return
   }
-  const { fileName, fileType, fileUrl } = parsedData.data!
+  const { fileName, fileType, fileUrl, fileKey } = parsedData.data!
+  console.log(' uploading to db', fileKey)
 
   try {
     const doc = await prisma.documents.create({
@@ -60,13 +57,20 @@ router.post('/upload', authMiddleware, async (req, res) => {
         fileName,
         fileType,
         fileUrl,
+        fileKey,
       },
     })
+    console.log('docccc', doc)
 
-    try {
-      const data = await loadDataIntoPinecone(doc.fileUrl)
-      console.log('dataaaaaaaaaaaa', data)
-    } catch (error) {}
+    if (doc) {
+      try {
+        await loadDataIntoPinecone(doc.fileKey)
+      } catch (error) {
+        console.error('Unable to upload the document', error)
+        res.status(500).json({ error: 'Failed to save file metadata in DB' })
+        return
+      }
+    }
     res
       .json({
         message: 'Document Uploaded Successfully',
@@ -74,7 +78,7 @@ router.post('/upload', authMiddleware, async (req, res) => {
       })
       .status(201)
   } catch (error) {
-    console.error('Unable to upload the document')
+    console.error('Unable to upload the document', error)
     res.status(500).json({ error: 'Failed to save file metadata in DB' })
     return
   }
@@ -121,7 +125,6 @@ router.get('/:documentId', async (req, res) => {
         .status(404)
       return
     }
-    // console.log('doc', doc)
 
     res
       .json({

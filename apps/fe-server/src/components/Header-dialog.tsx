@@ -13,11 +13,15 @@ import { Upload, Inbox } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import axios from 'axios'
 import { HTTP_BACKEND } from '@/config'
-import { SetStateAction, useEffect, useState } from 'react'
+import { SetStateAction, useState } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import { useAuth } from '@clerk/nextjs'
 
-const HeaderDialog = () => {
+type DialogProps = {
+  setUploadTrigger: React.Dispatch<SetStateAction<number>>
+}
+
+const HeaderDialog: React.FC<DialogProps> = ({ setUploadTrigger }) => {
   const [isUploading, setIsUploading] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const { getToken } = useAuth()
@@ -45,44 +49,44 @@ const HeaderDialog = () => {
           },
         }
       )
+
       if (!response.data.uploadUrl) {
         throw new Error('Failed to get presigned URL')
       }
 
-      const { uploadUrl } = response.data
+      const { uploadUrl, key } = response.data
 
       try {
-        const response = await axios.post(
-          `${HTTP_BACKEND}/user/documents/upload`,
-          {
-            fileName: file.name,
-            fileType: file.type.toUpperCase(),
-            fileUrl: uploadUrl,
+        const uploadedToS3 = await axios.put(`${uploadUrl}`, file, {
+          headers: {
+            'Content-Type': file.type,
           },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
+        })
 
-        if (response.status == 200) {
-          const uploadedToS3 = await axios.put(`${uploadUrl}`, file, {
-            headers: {
-              'Content-Type': file.type,
+        if (uploadedToS3.status == 200) {
+          const doc = await axios.post(
+            `${HTTP_BACKEND}/user/documents/upload`,
+            {
+              fileName: file.name,
+              fileType: file.type,
+              fileUrl: uploadUrl,
+              fileKey: key,
             },
-          })
-          if (uploadedToS3.status == 200) {
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+
+          if (doc.status == 201 || doc.status == 200) {
+            setUploadTrigger((prev) => prev + 1)
             toast.success('File Uploaded Successfully', {
               autoClose: 3000,
             })
-            setIsDialogOpen(false)
           }
-        } else {
-          toast.error('File Not Uploaded! Please try again.', {
-            autoClose: 3000,
-          })
+          setIsDialogOpen(false)
         }
       } catch (error) {
         console.log('error', error)

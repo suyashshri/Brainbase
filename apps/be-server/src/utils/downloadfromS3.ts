@@ -26,7 +26,7 @@ export async function downloadFromS3(filekey: string) {
     const client = new S3Client({ region: process.env.AWS_REGION! })
     const command = new GetObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME!,
-      Key: 'models/1740826904182_2327737890.pdf',
+      Key: filekey,
     })
     const response = await client.send(command)
 
@@ -49,7 +49,7 @@ export async function downloadFromS3(filekey: string) {
     fs.writeFileSync(filePath, fileBuffer)
     console.log('✅ PDF file downloaded successfully:', filePath)
 
-    return fileName // Return file name
+    return fileName
   } catch (error) {
     console.log('error in downloading from s3', error)
     throw error
