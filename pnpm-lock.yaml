@@ -20,6 +20,9 @@ importers:
 
   apps/be-server:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: ^1.1.15
+        version: 1.1.15(zod@3.24.2)
       '@aws-sdk/client-s3':
         specifier: ^3.750.0
         version: 3.750.0
@@ -38,6 +41,9 @@ importers:
       '@repo/db':
         specifier: workspace:*
         version: link:../../packages/db
+      ai:
+        specifier: ^4.1.47
+        version: 4.1.47(react@19.0.0)(zod@3.24.2)
       aws-sdk:
         specifier: ^2.1692.0
         version: 2.1692.0
@@ -65,12 +71,18 @@ importers:
       openai:
         specifier: ^4.85.4
         version: 4.85.4(ws@8.18.1)(zod@3.24.2)
+      openai-edge:
+        specifier: ^1.2.2
+        version: 1.2.2
       pdf-parse:
         specifier: ^1.1.1
         version: 1.1.1
       pdfjs-dist:
         specifier: ^4.10.38
         version: 4.10.38
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.2
     devDependencies:
       '@repo/backend-common':
         specifier: workspace:*
@@ -293,6 +305,12 @@ importers:
         version: 5.7.3
 
 packages:
+
+  '@ai-sdk/openai@1.1.15':
+    resolution: {integrity: sha512-irGQx5lMrYI9gub7Sy2ZHu49D3Icf7OtfOu3X8fVKMONOyi54RTKRNjVZTewkfRNE44psTbZDO8j8qmPirOTNQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
 
   '@ai-sdk/provider-utils@2.1.10':
     resolution: {integrity: sha512-4GZ8GHjOFxePFzkl3q42AU0DQOtTQ5w09vmaWUf/pKFXJPizlnzKSUkF0f+VkapIUfDugyMqPMT1ge8XQzVI7Q==}
@@ -3916,6 +3934,10 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
+  openai-edge@1.2.2:
+    resolution: {integrity: sha512-C3/Ao9Hkx5uBPv9YFBpX/x59XMPgPUU4dyGg/0J2sOJ7O9D98kD+lfdOc7v/60oYo5xzMGct80uFkYLH+X2qgw==}
+    engines: {node: '>=18'}
+
   openai@4.85.4:
     resolution: {integrity: sha512-Nki51PBSu+Aryo7WKbdXvfm0X/iKkQS2fq3O0Uqb/O3b4exOZFid2te1BZ52bbO5UwxQZ5eeHJDCTqtrJLPw0w==}
     hasBin: true
@@ -5053,6 +5075,12 @@ packages:
     resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
 
 snapshots:
+
+  '@ai-sdk/openai@1.1.15(zod@3.24.2)':
+    dependencies:
+      '@ai-sdk/provider': 1.0.9
+      '@ai-sdk/provider-utils': 2.1.10(zod@3.24.2)
+      zod: 3.24.2
 
   '@ai-sdk/provider-utils@2.1.10(zod@3.24.2)':
     dependencies:
@@ -8976,6 +9004,8 @@ snapshots:
   onetime@5.1.2:
     dependencies:
       mimic-fn: 2.1.0
+
+  openai-edge@1.2.2: {}
 
   openai@4.85.4(ws@8.18.1)(zod@3.24.2):
     dependencies:

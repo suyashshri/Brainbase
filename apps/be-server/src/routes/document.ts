@@ -5,8 +5,13 @@ import prisma from '@repo/db/client'
 import { DocumentUploadSchema } from '@repo/backend-common/types'
 import { authMiddleware } from '../middleware'
 import { loadDataIntoPinecone } from '../utils/pinecone'
+import { getContext } from '../utils/context'
+import OpenAI from "openai"
+import {Readable} from 'stream'
+import { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
 
 const router: Router = express.Router()
+
 
 //GET presigned URL and send it to frontend
 router.post('/pre-signed-url', authMiddleware, async (req, res) => {
@@ -106,24 +111,100 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 })
 
-router.post('/:documentId/chat', async(req,res)=>{
+//POST adding chat of current doc
+router.post('/:documentId/chat',authMiddleware, async(req,res)=>{
   try {
-    const documentId = req.params.documentId
-    const {content, role } = req.body
-    const chat = await prisma.pdfMessages.create({
-      data:{
-        docId:documentId,
-        content,
-        role
+    const documentId = req.params.documentId!
+    const { query  } = req.body;
+    
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+    const doc = await prisma.documents.findUnique({
+      where:{
+        id:documentId,
       }
     })
-  } catch (error) {
+
+    if(!doc){
+      res.json({ error: "doc not found" }).status(404);
+      return
+    }
+    const fileKey = doc.fileKey
+    try{
+      const context = await getContext(query, fileKey);
+    console.log("context",context);
+      const chatHistory = await prisma.pdfMessages.findMany({
+        where: {docId: documentId},
+        orderBy:{createAt:"asc"},
+        select:{role:true,content:true}
+      })
+      if(!chatHistory) return
+      const messages: ChatCompletionMessageParam[] = [
+        {role:"system",content: "You are an AI assistant answering based on PDF content."},
+        ...chatHistory,
+        { role: "user", content: context! },
+      ]
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages,
+        stream: true,
+      });
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      const encoder = new TextEncoder();
+      const readableStream = new Readable({
+        async read() {
+          for await (const chunk of response) {
+            const text = chunk.choices[0]?.delta?.content || '';
+            this.push(encoder.encode(text));
     
+            // Save assistant message to DB in real-time
+            await prisma.pdfMessages.create({
+              data: { docId: documentId, content: text, role: 'system' },
+            });
+          }
+          this.push(null); // End the stream
+        },
+      });
+
+  // Save user query to DB before returning stream
+  await prisma.pdfMessages.create({
+    data: { docId: documentId, content: query, role: "user" },
+  });
+
+  readableStream.pipe(res);
+    }catch (error) {
+      console.log('Error in fetching chat messages:', error)
+      throw new Error()
+    }
+  } catch (error) {
+    console.log('Error in creating chat message:', error)
+    throw new Error()
+  }
+})
+
+//GET all chats for current doc
+router.get("/:documentId/chat",authMiddleware,async(req,res)=>{
+  try {
+    const documentId = req.params.documentId!
+    const chat = await prisma.pdfMessages.findMany({
+      where:{
+        docId:documentId,
+      }
+    })
+    res.json({
+      chats: chat
+    }).status(201)
+  } catch (error) {
+    console.log('Error in creating chat message:', error)
+    throw new Error()
   }
 })
 
 //GET specific document with specific ID
-router.get('/:documentId', async (req, res) => {
+router.get('/:documentId',authMiddleware, async (req, res) => {
   try {
     const documentId = req.params.documentId
 
@@ -153,7 +234,7 @@ router.get('/:documentId', async (req, res) => {
 })
 
 //DELETE specific document with specific ID
-router.delete('/:documentId', async (req, res) => {
+router.delete('/:documentId',authMiddleware, async (req, res) => {
   try {
     const documentId = req.params.documentId
     const doc = await prisma.documents.delete({

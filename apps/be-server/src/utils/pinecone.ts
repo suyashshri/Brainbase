@@ -1,4 +1,4 @@
-import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone'
+import { Pinecone, PineconeRecord, RecordMetadata } from '@pinecone-database/pinecone'
 import { downloadFromS3 } from './downloadfromS3'
 import fs from 'fs'
 import md5 from 'md5'
@@ -36,6 +36,7 @@ createIndex()
 
 export async function loadDataIntoPinecone(filekey: string) {
   const file_name = await downloadFromS3(filekey)
+  const index_name = process.env.PINECONE_INDEX_NAME!
   if (!file_name) {
     throw new Error('Could not download file from S3')
   }
@@ -46,15 +47,25 @@ export async function loadDataIntoPinecone(filekey: string) {
   const vectors = await Promise.all(
     chunks.map(async (c) => {
       const embeddings = await getEmbeddingsFromOpenAI(c.chunk)
+      const metadata =  {
+        text: c.chunk,
+        pageNumber: Number(c.pageIndex),
+        chunkNumber: Number(c.chunkIndex),
+      }
+      const pineconeIndex = pc.index(index_name)
+    const namespace = pineconeIndex.namespace("models/pdf");
+    await namespace.upsert([
+      {id: `file_name_${c.pageIndex}_${c.chunkIndex}`,
+      values: embeddings,
+      metadata: metadata
+    }
+    ])
+
       const hash = md5(c.chunk)
       return {
         id: hash,
         values: embeddings,
-        metadata: {
-          text: c.chunk,
-          pageNumber: Number(c.pageIndex),
-          chunkNumber: Number(c.chunkIndex),
-        },
+        metadata:metadata,
       } as PineconeRecord
     })
   )

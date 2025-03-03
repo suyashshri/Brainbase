@@ -15,8 +15,7 @@ const page = () => {
 
   console.log(id)
 
-  useEffect(() => {
-    ;(async () => {
+  useEffect(() => {(async () => {
       if (!id) return
       const token = await getToken()
       try {
@@ -46,7 +45,7 @@ const page = () => {
         {pdfUrl && <PDFViewer pdf_url={pdfUrl} />}
       </div>
       <div className="flex-[3] max-h-screen border-l-4 border-l-slate-200">
-        <ChatPdf />
+        <ChatPdf documentId = {id}/>
       </div>
     </div>
   )

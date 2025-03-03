@@ -12,6 +12,7 @@ export async function getEmbeddingsFromOpenAI(text: string) {
       encoding_format: 'float',
     })
     const result = response.data[0]?.embedding
+
     return result
   } catch (error) {
     console.log('error calling openai embeddings api', error)
