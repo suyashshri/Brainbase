@@ -6,9 +6,12 @@ import { DocumentUploadSchema } from '@repo/backend-common/types'
 import { authMiddleware } from '../middleware'
 import { loadDataIntoPinecone } from '../utils/pinecone'
 import { getContext } from '../utils/context'
-import OpenAI from "openai"
+import OpenAI  from "openai"
 import {Readable} from 'stream'
 import { ChatCompletionMessageParam } from 'openai/resources/index.mjs'
+import {createOpenAI, openai,} from "@ai-sdk/openai";
+import { streamText, convertToCoreMessages, } from "ai";
+
 
 const router: Router = express.Router()
 
@@ -112,14 +115,12 @@ router.get('/', authMiddleware, async (req, res) => {
 })
 
 //POST adding chat of current doc
-router.post('/:documentId/chat',authMiddleware, async(req,res)=>{
+router.post('/:documentId/chat', async(req,res)=>{
   try {
     const documentId = req.params.documentId!
     const { query  } = req.body;
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY})
     
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
     const doc = await prisma.documents.findUnique({
       where:{
         id:documentId,
@@ -133,48 +134,39 @@ router.post('/:documentId/chat',authMiddleware, async(req,res)=>{
     const fileKey = doc.fileKey
     try{
       const context = await getContext(query, fileKey);
-    console.log("context",context);
+      console.log("context",context);
       const chatHistory = await prisma.pdfMessages.findMany({
         where: {docId: documentId},
         orderBy:{createAt:"asc"},
         select:{role:true,content:true}
       })
       if(!chatHistory) return
-      const messages: ChatCompletionMessageParam[] = [
-        {role:"system",content: "You are an AI assistant answering based on PDF content."},
-        ...chatHistory,
-        { role: "user", content: context! },
-      ]
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages,
-        stream: true,
-      });
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      const encoder = new TextEncoder();
-      const readableStream = new Readable({
-        async read() {
-          for await (const chunk of response) {
-            const text = chunk.choices[0]?.delta?.content || '';
-            this.push(encoder.encode(text));
-    
-            // Save assistant message to DB in real-time
-            await prisma.pdfMessages.create({
-              data: { docId: documentId, content: text, role: 'system' },
-            });
-          }
-          this.push(null); // End the stream
-        },
+
+      const messages = [
+        { role: 'system' as const, content: "You are an AI assistant answering based on PDF content." },
+        ...chatHistory.map((message) => ({
+          role: message.role as 'system' | 'user' ,
+          content: message.content,
+        })),
+        { role: 'user' as const, content: `Context: ${context}\n\nQuery: ${query}` },
+      ];
+
+      const result = streamText({
+        model: openai('gpt-3.5-turbo'),
+        messages, 
       });
 
-  // Save user query to DB before returning stream
-  await prisma.pdfMessages.create({
-    data: { docId: documentId, content: query, role: "user" },
-  });
+      await prisma.pdfMessages.create({
+        data: { docId: documentId, content: query, role: 'system' },
+      });
+      await prisma.pdfMessages.create({
+        data: { docId: documentId, content: query, role: "user" },
+      });
+      res.json({
+        messgae:"completed"
+      })
 
-  readableStream.pipe(res);
+
     }catch (error) {
       console.log('Error in fetching chat messages:', error)
       throw new Error()
