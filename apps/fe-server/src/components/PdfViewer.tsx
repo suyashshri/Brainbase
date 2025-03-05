@@ -1,14 +1,18 @@
-import React from 'react'
+'use client';
+import React from 'react';
 
-type Props = { pdf_url: string }
+type Props = { pdf_url: string };
 
 const PDFViewer = ({ pdf_url }: Props) => {
-  return (
-    <iframe
-      src={`https://docs.google.com/gview?url=${pdf_url}&embedded=true`}
-      className="w-full h-screen"
-    ></iframe>
-  )
-}
+    return (
+        <>
+            {pdf_url ? (
+                <iframe src={pdf_url} className="w-full h-screen"></iframe>
+            ) : (
+                <p>Loading PDF...</p>
+            )}
+        </>
+    );
+};
 
-export default PDFViewer
+export default PDFViewer;
