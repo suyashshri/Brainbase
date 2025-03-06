@@ -5,6 +5,9 @@ import prisma from '@repo/db/client';
 import { DocumentUploadSchema } from '@repo/backend-common/types';
 import { authMiddleware } from '../middleware';
 import { loadDataIntoPinecone } from '../utils/pinecone';
+import OpenAI from 'openai';
+import { ChatCompletionMessageParam } from 'openai/resources/chat';
+import { getContext } from '../utils/context';
 
 const router: Router = express.Router();
 
@@ -109,17 +112,111 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 //POST adding chat of current doc
-router.post('/:documentId/chat', async (req, res) => {});
+router.post('/:documentId/chat', async (req, res) => {
+    console.log('Inside Chat post document');
+    try {
+        const documentId = req.params.documentId;
+        const { message } = req.body;
+        if (!documentId || !message) {
+            res.status(400).json({
+                error: 'Document ID and query are required.',
+            });
+            return;
+        }
+
+        console.log('After documentId', documentId);
+
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+        const doc = await prisma.documents.findUnique({
+            where: { id: documentId },
+        });
+
+        if (!doc) {
+            res.status(404).json({ error: 'Document not found.' });
+            return;
+        }
+        console.log('After doc', doc);
+
+        const fileKey = doc.fileKey;
+        const context = await getContext(message, fileKey);
+        console.log('Context:', context);
+
+        const chatHistory = await prisma.pdfMessages.findMany({
+            where: { docId: documentId },
+            orderBy: { createAt: 'asc' },
+            select: { role: true, content: true },
+        });
+
+        const messages: ChatCompletionMessageParam[] = [
+            {
+                role: 'system',
+                content:
+                    'You are an AI assistant answering based on PDF content.',
+            },
+            ...chatHistory.map((message) => ({
+                role: message.role as 'system' | 'user',
+                content: message.content,
+            })),
+            {
+                role: 'user',
+                content: `Context: ${context}\n\nQuery: ${message}`,
+            },
+        ];
+        console.log('messages:', messages);
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages,
+            });
+            if (!completion || !completion.choices[0]) {
+                res.status(500).json({ error: 'Error in chat completions.' });
+                return;
+            }
+            const assistantResponse =
+                completion.choices[0].message.content ||
+                'Unable to find answer due to heavy load on server';
+            console.log('assistantResponse:', assistantResponse);
+
+            await prisma.pdfMessages.create({
+                data: { docId: documentId, content: message, role: 'user' },
+            });
+            await prisma.pdfMessages.create({
+                data: {
+                    docId: documentId,
+                    content: assistantResponse,
+                    role: 'system',
+                },
+            });
+            res.status(200).json({
+                response: assistantResponse,
+            });
+        } catch (error) {
+            console.error('Error in chat completions:', error);
+            res.status(500).json({ error: 'Error in chat completions.' });
+        }
+    } catch (error) {
+        console.error('Error in chatWithPdf:', error);
+        res.status(500).json({
+            error: 'An error occurred while processing your request.',
+        });
+    }
+});
 
 //GET all chats for current doc
 router.get('/:documentId/chat', authMiddleware, async (req, res) => {
     try {
         const documentId = req.params.documentId!;
+        console.log('documentId:', documentId);
+
         const chat = await prisma.pdfMessages.findMany({
             where: {
                 docId: documentId,
             },
         });
+        console.log('chat:', chat);
+
         res.json({
             chats: chat,
         }).status(201);
