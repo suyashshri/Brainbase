@@ -31,16 +31,20 @@ export async function getContext(query: string, fileKey: string) {
         return;
     }
     const matches = await getMatchesFromEmbeddings(queryEmbeddings, fileKey);
+    console.log('matchesmatchesmatches', matches);
 
     const qualifyingDocs = matches.filter(
         (match) => match.score && match.score > 0.4
     );
+    console.log('qualifyingDocsqualifyingDocs', qualifyingDocs);
+
     type Metadata = {
         text: string;
         pageNumber: number;
     };
 
     let docs = qualifyingDocs.map((match) => (match.metadata as Metadata).text);
+    console.log('docsdocsdocs', docs);
 
     return docs.join('\n').substring(0, 3000);
 }
