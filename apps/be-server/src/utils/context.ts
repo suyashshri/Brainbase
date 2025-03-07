@@ -34,9 +34,8 @@ export async function getContext(query: string, fileKey: string) {
     console.log('matchesmatchesmatches', matches);
 
     const qualifyingDocs = matches.filter(
-        (match) => match.score && match.score > 0.4
+        (match) => match.score && match.score > 0.2
     );
-    console.log('qualifyingDocsqualifyingDocs', qualifyingDocs);
 
     type Metadata = {
         text: string;
@@ -44,7 +43,6 @@ export async function getContext(query: string, fileKey: string) {
     };
 
     let docs = qualifyingDocs.map((match) => (match.metadata as Metadata).text);
-    console.log('docsdocsdocs', docs);
 
     return docs.join('\n').substring(0, 3000);
 }
@@ -59,20 +57,34 @@ export async function getAllDocs(query: string) {
             apiKey: process.env.PINECONE_API_KEY!,
         });
         const pineconeIndex = client.index('brainbase-index');
-        console.log('pineconeIndex', pineconeIndex);
 
         const searchResults = await pineconeIndex.query({
             vector: query_embed,
             topK: 5,
             includeMetadata: true,
         });
-        console.log('searchResults', searchResults);
 
-        const documents = searchResults.matches.map((match) => ({
-            id: match.id,
-            score: match.score,
-            metadata: match.metadata,
-        }));
-        console.log('documents', documents);
+        const documents = searchResults.matches.map((match) =>
+            (match.score ?? 0 > 0.25)
+                ? {
+                      id: match.id,
+                      score: match.score,
+                      metadata: match.metadata,
+                  }
+                : null
+        );
+
+        const uniqueDocuments = [];
+        const seenFileKeys = new Set();
+
+        for (const doc of documents) {
+            const fileKey = doc?.metadata?.fileKey;
+            if (!seenFileKeys.has(fileKey)) {
+                seenFileKeys.add(fileKey);
+                uniqueDocuments.push(doc);
+            }
+        }
+
+        return seenFileKeys;
     } catch (error) {}
 }

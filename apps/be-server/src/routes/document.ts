@@ -236,6 +236,23 @@ router.post('/find', authMiddleware, async (req, res) => {
     }
 
     const docs = await getAllDocs(query);
+    console.log(docs);
+    if (!docs) {
+        res.json({
+            message: 'Can not find any document related',
+        }).status(500);
+        return;
+    }
+    const documents = await prisma.documents.findMany({
+        where: {
+            fileKey: {
+                in: Array.from(docs) as string[],
+            },
+        },
+    });
+    res.json({
+        docs: documents,
+    }).status(200);
 });
 
 //GET specific document with specific ID
