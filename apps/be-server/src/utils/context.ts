@@ -1,43 +1,74 @@
-import { Pinecone } from "@pinecone-database/pinecone";
-import { getEmbeddingsFromOpenAI } from "./embeddings";
+import { Pinecone } from '@pinecone-database/pinecone';
+import { getEmbeddingsFromOpenAI } from './embeddings';
 
-export async function getMatchesFromEmbeddings(embeddings: number[],fileKey: string){
+export async function getMatchesFromEmbeddings(
+    embeddings: number[],
+    fileKey: string
+) {
     try {
         const client = new Pinecone({
             apiKey: process.env.PINECONE_API_KEY!,
-          })
-          const pineconeIndex = client.index("brainbase-index");
-          const namespace = pineconeIndex.namespace("models/pdf")
+        });
+        const pineconeIndex = client.index('brainbase-index');
+        const namespace = pineconeIndex.namespace('models/pdf');
 
-          const queryResult = await namespace.query({
+        const queryResult = await namespace.query({
             topK: 5,
             vector: embeddings,
             includeMetadata: true,
-          });
+        });
 
-          return queryResult.matches || [];
-
+        return queryResult.matches || [];
     } catch (error) {
-        console.log("error querying embeddings", error);
-    throw error;
+        console.log('error querying embeddings', error);
+        throw error;
     }
 }
 
-export async function getContext(query: string, fileKey: string){
-    
-    const queryEmbeddings = await getEmbeddingsFromOpenAI(query)
-    if(!queryEmbeddings){
-        return
+export async function getContext(query: string, fileKey: string) {
+    const queryEmbeddings = await getEmbeddingsFromOpenAI(query);
+    if (!queryEmbeddings) {
+        return;
     }
-    const matches = await getMatchesFromEmbeddings(queryEmbeddings,fileKey)
+    const matches = await getMatchesFromEmbeddings(queryEmbeddings, fileKey);
 
-    const qualifyingDocs = matches.filter((match)=> match.score && match.score>0.4)
+    const qualifyingDocs = matches.filter(
+        (match) => match.score && match.score > 0.4
+    );
     type Metadata = {
         text: string;
         pageNumber: number;
-      };
-    
-      let docs = qualifyingDocs.map((match) => (match.metadata as Metadata).text);
+    };
 
-      return docs.join("\n").substring(0, 3000);
+    let docs = qualifyingDocs.map((match) => (match.metadata as Metadata).text);
+
+    return docs.join('\n').substring(0, 3000);
+}
+
+export async function getAllDocs(query: string) {
+    const query_embed = await getEmbeddingsFromOpenAI(query);
+    if (!query_embed) {
+        return;
+    }
+    try {
+        const client = new Pinecone({
+            apiKey: process.env.PINECONE_API_KEY!,
+        });
+        const pineconeIndex = client.index('brainbase-index');
+        console.log('pineconeIndex', pineconeIndex);
+
+        const searchResults = await pineconeIndex.query({
+            vector: query_embed,
+            topK: 5,
+            includeMetadata: true,
+        });
+        console.log('searchResults', searchResults);
+
+        const documents = searchResults.matches.map((match) => ({
+            id: match.id,
+            score: match.score,
+            metadata: match.metadata,
+        }));
+        console.log('documents', documents);
+    } catch (error) {}
 }

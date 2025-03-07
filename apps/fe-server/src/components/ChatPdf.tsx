@@ -82,8 +82,8 @@ const ChatPdf = ({ documentId }: { documentId: string }) => {
     };
 
     return (
-        <div className="relative h-screen flex flex-col bg-white">
-            <div className="p-3 bg-gray-50 border-b shadow-sm">
+        <div className="relative h-screen flex flex-col">
+            <div className="p-3 border-b shadow-sm">
                 <h3 className="text-2xl font-bold">Chat</h3>
             </div>
             <div
@@ -99,7 +99,7 @@ const ChatPdf = ({ documentId }: { documentId: string }) => {
                     </div>
                 ))}
             </div>
-            <div className="sticky bottom-0 inset-x-0 bg-white border-t p-3">
+            <div className="sticky bottom-0 inset-x-0 border-t p-3">
                 <form
                     onSubmit={handleSubmit}
                     className="flex items-center gap-2"

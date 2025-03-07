@@ -7,7 +7,8 @@ import { authMiddleware } from '../middleware';
 import { loadDataIntoPinecone } from '../utils/pinecone';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
-import { getContext } from '../utils/context';
+import { getAllDocs, getContext } from '../utils/context';
+import { getEmbeddingsFromOpenAI } from '../utils/embeddings';
 
 const router: Router = express.Router();
 
@@ -224,6 +225,17 @@ router.get('/:documentId/chat', authMiddleware, async (req, res) => {
         console.log('Error in creating chat message:', error);
         throw new Error();
     }
+});
+
+//POST documents which are related to query
+router.post('/find', authMiddleware, async (req, res) => {
+    const { query } = req.body;
+
+    if (!query) {
+        res.json({ error: 'Query is required' }).status(400);
+    }
+
+    const docs = await getAllDocs(query);
 });
 
 //GET specific document with specific ID
