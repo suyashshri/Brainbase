@@ -1,6 +1,5 @@
-import Landing from '@/components/Landing'
-import Image from 'next/image'
+import Landing from '@/components/Landing';
 
 export default function Home() {
-  return <Landing />
+    return <Landing />;
 }

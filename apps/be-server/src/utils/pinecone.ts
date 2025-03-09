@@ -1,17 +1,11 @@
-import {
-    Pinecone,
-    PineconeRecord,
-    RecordMetadata,
-} from '@pinecone-database/pinecone';
+import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
 import { downloadFromS3 } from './downloadfromS3';
 import fs from 'fs';
 import md5 from 'md5';
-import { splitPdfIntoChunks } from './splitpdf';
 import { getEmbeddingsFromOpenAI } from './embeddings';
 import path from 'path';
 import pdf from 'pdf-parse';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
-import prisma from '@repo/db/client';
 
 const pc = new Pinecone({
     apiKey: process.env.PINECONE_API_KEY!,

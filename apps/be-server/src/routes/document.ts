@@ -8,7 +8,6 @@ import { loadDataIntoPinecone } from '../utils/pinecone';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { getAllDocs, getContext } from '../utils/context';
-import { getEmbeddingsFromOpenAI } from '../utils/embeddings';
 
 const router: Router = express.Router();
 
