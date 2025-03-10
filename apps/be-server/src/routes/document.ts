@@ -1,13 +1,11 @@
 import express, { Router } from 'express';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import prisma from '@repo/db/client';
-import { DocumentUploadSchema } from '@repo/backend-common/types';
 import { authMiddleware } from '../middleware';
 import { loadDataIntoPinecone } from '../utils/pinecone';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { getAllDocs, getContext } from '../utils/context';
+import { putObject } from '../utils/presignedUrl';
 
 const router: Router = express.Router();
 
@@ -21,20 +19,29 @@ router.post('/pre-signed-url', authMiddleware, async (req, res) => {
             });
             return;
         }
-        const key = `models/${Date.now()}_${filename}`;
+        const contentType =
+            filetype === 'application/pdf'
+                ? 'pdf'
+                : filetype === 'image/png' || filetype === 'image/jpeg'
+                  ? 'image'
+                  : 'doc';
+        const key = `models/${contentType}/${Date.now()}_${filename}`;
 
-        const client = new S3Client({ region: process.env.AWS_REGION! });
-        const command = new PutObjectCommand({
-            Bucket: process.env.S3_BUCKET_NAME!,
-            Key: key,
-        });
-        const uploadUrl = await getSignedUrl(client, command, {
-            expiresIn: 3600,
+        const uploadUrl = await putObject(key, filetype);
+
+        const doc = await prisma.documents.create({
+            data: {
+                userId: req.userId,
+                fileName: filename,
+                fileType: filetype,
+                fileUrl: uploadUrl,
+                fileKey: key,
+            },
         });
 
         res.json({
             uploadUrl,
-            key,
+            docId: doc.id,
         });
     } catch (err) {
         console.log('Error in generating presigned URL:', err);
@@ -44,27 +51,15 @@ router.post('/pre-signed-url', authMiddleware, async (req, res) => {
 
 //GET presigned URL and send it to frontend
 router.post('/upload', authMiddleware, async (req, res) => {
-    const data = req.body;
-    const parsedData = DocumentUploadSchema.safeParse(data);
+    const { id } = req.body;
     console.log(' uploading to db');
-
-    if (!parsedData.success) {
-        res.json({
-            message: 'Please enter valid title and description',
-        }).status(422);
-        return;
-    }
-    const { fileName, fileType, fileUrl, fileKey } = parsedData.data!;
-    console.log(' uploading to db', fileKey);
-
     try {
-        const doc = await prisma.documents.create({
+        const doc = await prisma.documents.update({
+            where: {
+                id: id,
+            },
             data: {
-                userId: req.userId,
-                fileName,
-                fileType,
-                fileUrl,
-                fileKey,
+                uploaded: true,
             },
         });
         console.log('docccc', doc);

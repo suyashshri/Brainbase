@@ -26,7 +26,7 @@ model Documents {
   fileUrl    String
   fileKey    String
   uploadedAt DateTime       @default(now())
-  processed  Boolean        @default(true)
+  uploaded   Boolean        @default(false)
   chunks     ContentChunk[]
   messages   PdfMessages[]
 }

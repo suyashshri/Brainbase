@@ -1,16 +1,16 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import AWS from 'aws-sdk';
+// import AWS from 'aws-sdk';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 
 dotenv.config();
 
-const s3 = new AWS.S3({
-    accessKeyId: process.env.S3_ACCESS_KEY_ID,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION,
-});
+// const s3 = new AWS.S3({
+//     accessKeyId: process.env.S3_ACCESS_KEY_ID,
+//     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+//     region: process.env.AWS_REGION,
+// });
 
 async function streamToBuffer(stream: any): Promise<Buffer> {
     return new Promise((resolve, reject) => {
