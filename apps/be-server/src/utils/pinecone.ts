@@ -50,15 +50,12 @@ export async function loadDataIntoPinecone(filekey: string) {
     const localFilePath = path.join(process.cwd(), 'tmp', file_name);
 
     const text = await extractTextFromPdf(localFilePath);
-    console.log('Extracted Text:', text);
 
     const textSplitter = new RecursiveCharacterTextSplitter({
         chunkSize: 450,
         chunkOverlap: 50,
     });
     const chunks = await textSplitter.splitText(text);
-    console.log('chunks', chunks);
-    console.log('chunks', chunks.length);
 
     const vectors = await Promise.all(
         chunks.map(async (c, idx) => {
@@ -86,15 +83,6 @@ export async function loadDataIntoPinecone(filekey: string) {
             } as PineconeRecord;
         })
     );
-
-    // await prisma.contentChunk.createMany({
-    //     data: vectors.map((chunk) => ({
-    //       documentId: "123",
-    //       chunkText: chunk.metadata?.text ?? '',
-    //       chunkIndex: chunk.metadata?.chunkNumber ?? 0,
-    //       pinecodeId: chunk.id,
-    //     })),
-    // });
 
     const index = pc.index(process.env.PINECONE_INDEX_NAME!);
 

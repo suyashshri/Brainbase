@@ -64,6 +64,7 @@ const HeaderDialog: React.FC<DialogProps> = ({ setUploadTrigger }) => {
                         'Content-Type': file.type,
                     },
                 });
+                console.log('uploadedToS3', uploadedToS3);
 
                 if (uploadedToS3.status == 200) {
                     const doc = await axios.post(
@@ -78,8 +79,9 @@ const HeaderDialog: React.FC<DialogProps> = ({ setUploadTrigger }) => {
                             },
                         }
                     );
+                    console.log('doc', doc);
 
-                    if (doc.status == 201 || doc.status == 200) {
+                    if (doc.status == 200) {
                         setUploadTrigger((prev) => prev + 1);
                         toast.success('File Uploaded Successfully', {
                             autoClose: 3000,
