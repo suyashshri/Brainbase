@@ -1,9 +1,9 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import dotenv from 'dotenv';
+// import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 
-dotenv.config();
+// dotenv.config();
 
 async function streamToBuffer(stream: any): Promise<Buffer> {
     return new Promise((resolve, reject) => {
